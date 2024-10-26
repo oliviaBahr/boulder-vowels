@@ -1,0 +1,89 @@
+i	beet
+i	deed
+i	seed
+i	seat
+i	bead
+
+ɪ	bit
+ɪ	kid
+ɪ	sip
+ɪ	bid
+ɪ	sit
+
+ɛ	bet
+ɛ	peck
+ɛ	set
+ɛ	met
+ɛ	led
+
+æ	bat
+æ	sad
+æ	cat
+æ	mad
+æ	lad
+
+ɑ	bot
+ɑ	dog
+ɑ	pot
+ɑ	got
+ɑ	cod
+
+ɔ	bought
+ɔ	caught
+ɔ	sought
+ɔ	pawn
+ɔ	ought
+
+ʌ	but
+ʌ	dug
+ʌ	suck
+ʌ	pug
+ʌ	nut
+
+u	boot
+u	soup
+u	hoot
+u	loot
+u	booed
+
+ʊ	book
+ʊ	took
+ʊ	cook
+ʊ	could
+ʊ	should
+
+oʊ	boat
+oʊ	soak
+oʊ	code
+oʊ	moat
+oʊ	mode
+
+ʌɪ	bite
+ʌɪ	fight
+ʌɪ	tight
+ʌɪ	kite
+ʌɪ	might
+
+eɪ	bait
+eɪ	date
+eɪ	paid
+eɪ	laid
+eɪ	tate
+
+aʊ	bout
+aʊ	pout
+aʊ	cow
+aʊ	shout
+aʊ	pouch
+
+aɪ	buy
+aɪ	sigh
+aɪ	guy
+aɪ	lie
+aɪ	die
+
+ɝ	were
+ɝ	her
+ɝ	sir
+ɝ	spur
+ɝ	fur
