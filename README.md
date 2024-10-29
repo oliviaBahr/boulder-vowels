@@ -11,6 +11,3 @@
     ├── unique.txt # list of all words organized by vowel
     └── distributed.txt # the distributed list. Unique doubled, shuffled, and split up.
 ```
-
-
-asjifpjewaiopfj
