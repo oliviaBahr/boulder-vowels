@@ -72,16 +72,10 @@ async def fetch_row_wavs(row) -> List[bytes]:
         return []
 
 
-async def process_row(row) -> None:
-    wav_contents = await fetch_row_wavs(row)
-    if not wav_contents:
-        return
-
-    outfile = path.join("data", "responses", row["ResponseId"] + ".wav")
+async def concat_wavs(wav_contents: List[bytes], outfile: str) -> None:
     params = []
     frames = bytes()
 
-    # concatenate wav files
     for i, content in enumerate(wav_contents):
         try:
             print(f"Reading wave data from file {i+1}")
@@ -92,15 +86,20 @@ async def process_row(row) -> None:
             print(f"Error processing file {i+1}: {e}")
             continue
 
-    # Write combined output after all files are processed
-    if params:
-        print("Writing output")
-        with wave.open(outfile, "wb") as output:
-            output.setparams(params[0])
-            output.writeframes(frames)
+    with wave.open(outfile, "wb") as output:
+        output.setparams(params[0])
+        output.writeframes(frames)
 
 
 async def get_qualtrics_data() -> None:
+    async def process_row(row):
+        wav_contents = await fetch_row_wavs(row)
+        if not wav_contents:
+            return
+
+        outfile = path.join("data", "responses", row["ResponseId"] + ".wav")
+        await concat_wavs(wav_contents, outfile)
+
     with open("data/survey.csv", mode="r") as csv_file:
         rows = list(csv.DictReader(csv_file))
         await asyncio.gather(*[process_row(row) for row in rows])
