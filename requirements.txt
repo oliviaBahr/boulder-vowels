@@ -1,4 +1,6 @@
-matplotlib
-numpy
-praat-parselmouth
-TextGrid
+aiohttp==3.11.10
+matplotlib==3.9.3
+montreal_forced_aligner==3.2.1
+numpy==2.2.0
+parselmouth==1.1.1
+textgrid==1.6.1
