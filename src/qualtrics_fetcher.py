@@ -2,8 +2,10 @@ import asyncio
 import csv
 import io
 import os
+import re
 import wave
 import zipfile
+from asyncio import Semaphore
 from os import path
 from typing import List, Optional
 
@@ -11,41 +13,58 @@ import aiohttp
 
 headers = {"X-API-TOKEN": os.environ["qualtrics_key"]}
 
-
-async def fetch_separate_wavs(row) -> List[bytes]:
-    async with aiohttp.ClientSession(headers=headers) as session:
-
-        async def fetch_wav(url) -> Optional[bytes]:
-            try:
-                print("Getting ", url)
-                async with session.get(url) as response:
-                    if response.status != 200:
-                        print(f"Failed to download {url}: {response.status}")
-                        return None
-                    return await response.read()
-            except Exception as e:
-                print(e)
-                return None
-
-        infiles = [row["wav" + str(i) + "_Url"] for i in range(1, 7)]
-        files = await asyncio.gather(*[fetch_wav(url) for url in infiles])
-        filtered_files = list(filter(None, files))
-        assert len(filtered_files) == 6, f"Expected 6 WAV files, got {len(filtered_files)}"
-        return filtered_files
+# Add rate limit configuration
+RATE_LIMIT = 5  # requests per second
+MAX_CONCURRENT = 3  # maximum concurrent requests
 
 
-async def fetch_zip_wavs(row) -> List[bytes]:
+def concat_wavs(wav_contents: List[bytes], outfile: str):
+    with wave.open(io.BytesIO(wav_contents[0]), "rb") as w:
+        params = w.getparams()
+
+    with wave.open(outfile, "wb") as outwave:
+        outwave.setparams(params)
+        for wav in wav_contents:
+            with wave.open(io.BytesIO(wav), "rb") as w:
+                outwave.writeframes(w.readframes(w.getnframes()))
+
+
+async def fetch_wav_async(session: aiohttp.ClientSession, url: str, semaphore: Semaphore) -> Optional[bytes]:
+    async with semaphore:
+        try:
+            print("Getting ", url)
+            async with session.get(url, headers=headers) as response:
+                if response.status != 200:
+                    print(f"Failed to download {url}: {response.status}")
+                    return None
+                return await response.read()
+        except Exception as e:
+            print(e)
+            return None
+
+
+async def fetch_separate_wavs_async(session: aiohttp.ClientSession, row, semaphore: Semaphore) -> List[bytes]:
+    infiles = [row["wav" + str(i) + "_Url"] for i in range(1, 7)]
+    tasks = [fetch_wav_async(session, url, semaphore) for url in infiles]
+    files = await asyncio.gather(*tasks)
+    filtered_files = list(filter(None, files))
+    assert len(filtered_files) == 6, f"Expected 6 WAV files, got {len(filtered_files)}"
+    return filtered_files
+
+
+async def fetch_zip_wavs_async(session: aiohttp.ClientSession, row, semaphore: Semaphore) -> List[bytes]:
     infile = row["Zip File_Url"]
-    async with aiohttp.ClientSession(headers=headers) as session:
-        async with session.get(infile) as response:
+    async with semaphore:
+        async with session.get(infile, headers=headers) as response:
             if response.status != 200:
-                print(f"Failed to download {infile}: {response.status}")
                 raise Exception(f"Failed to download {infile}: {response.status}")
             zip_content = await response.read()
 
+    # Rest of zip processing remains synchronous as it's IO-bound with local files
     zip_buffer = io.BytesIO(zip_content)
     with zipfile.ZipFile(zip_buffer) as zip_ref:
         files = list(filter(lambda x: x.endswith(".wav"), zip_ref.namelist()))
+        files = sorted(files, key=lambda x: int(re.findall(r"\d+", x)[0]))  # make sure they're in order
         print(f"Found WAV files in zip: {files}")
 
         wav_contents = []
@@ -61,50 +80,41 @@ async def fetch_zip_wavs(row) -> List[bytes]:
         return wav_contents
 
 
-async def fetch_row_wavs(row) -> List[bytes]:
+async def fetch_row_wavs_async(session: aiohttp.ClientSession, row, semaphore: Semaphore) -> List[bytes]:
     try:
         if row["Zip File_Url"].strip().endswith("="):
-            return await fetch_separate_wavs(row)
+            return await fetch_separate_wavs_async(session, row, semaphore)
         else:
-            return await fetch_zip_wavs(row)
+            return await fetch_zip_wavs_async(session, row, semaphore)
     except Exception as e:
         print(f"Error processing row {row['ResponseId']}: {e}")
         return []
 
 
-async def concat_wavs(wav_contents: List[bytes], outfile: str) -> None:
-    params = []
-    frames = bytes()
-
-    for i, content in enumerate(wav_contents):
-        try:
-            print(f"Reading wave data from file {i+1}")
-            with wave.open(io.BytesIO(content), "rb") as w:
-                frames += w.readframes(w.getnframes())
-                params.append(w.getparams())
-        except Exception as e:
-            print(f"Error processing file {i+1}: {e}")
-            continue
-
-    with wave.open(outfile, "wb") as output:
-        output.setparams(params[0])
-        output.writeframes(frames)
-
-
-async def get_qualtrics_data() -> None:
-    async def process_row(row):
-        wav_contents = await fetch_row_wavs(row)
+async def process_row_async(session: aiohttp.ClientSession, row, semaphore: Semaphore):
+    try:
+        wav_contents = await fetch_row_wavs_async(session, row, semaphore)
         if not wav_contents:
             return
+        outfile = path.join("corpus", "unaligned", row["ResponseId"] + ".wav")
+        # Run CPU-bound concat_wavs in a thread pool
+        await asyncio.to_thread(concat_wavs, wav_contents, outfile)
+    except Exception as e:
+        print(f"Error processing row {row['ResponseId']}: {e}")
 
-        outfile = path.join("data", "responses", row["ResponseId"] + ".wav")
-        await concat_wavs(wav_contents, outfile)
 
-    with open("data/survey.csv", mode="r") as csv_file:
-        rows = list(csv.DictReader(csv_file))
-        await asyncio.gather(*[process_row(row) for row in rows])
+async def get_qualtrics_data_async():
+    semaphore = Semaphore(MAX_CONCURRENT)
+    async with aiohttp.ClientSession() as session:
+        with open("data/survey.csv", mode="r") as csv_file:
+            rows = list(csv.DictReader(csv_file))
+            tasks = [process_row_async(session, row, semaphore) for row in rows]
+            await asyncio.gather(*tasks)
+
+
+def get_qualtrics_data():
+    asyncio.run(get_qualtrics_data_async())
 
 
 if __name__ == "__main__":
-    asyncio.run(get_qualtrics_data())
-    # print(len(os.listdir("data/responses")))
+    get_qualtrics_data()
