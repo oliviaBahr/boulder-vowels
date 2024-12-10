@@ -1,0 +1,240 @@
+bite	B AY1 T
+bite	B AY2 T
+kite	K AY1 T
+sought	S AO1 T
+bot	B AA1 T
+bot	B AH0 T
+bot	B OW1
+moat	M OW1 T
+led	L D
+led	L EH1 D
+lie	L AY1
+lie	L IY0
+lie	L IY1
+bout	B AW1 T
+bout	B AW2 T
+code	K OW1 D
+should	SH UH1 D
+ought	AO1 T
+pug	P AH1 G
+dog	D AO1 G
+got	G AA1 T
+got	G AH0 T
+fur	F ER0
+fur	F ER1
+fur	F UH0 R
+fur	F Y UH1 R
+buy	B AY1
+buy	B AY2
+suck	S AH1 K
+tate	T EY1 T
+die	D AY1
+die	D IY0
+die	D IY1
+sought	S AO1 T
+loot	L UW1 T
+kid	K IH1 D
+booed	B UW1 D
+soup	S UW1 P
+bot	B AA1 T
+bot	B AH0 T
+bot	B OW1
+set	S EH0 T
+set	S EH1 T
+set	S EH2 T
+might	M AY1 T
+cod	K AA1 D
+seat	S IY1 T
+bid	B IH1 D
+lad	L AE1 D
+dog	D AO1 G
+soak	S OW1 K
+pot	P AA1 T
+pot	P AA2 T
+pot	P AH0 T
+tight	T AY1 T
+fight	F AY1 T
+fight	F AY2 T
+led	L D
+led	L EH1 D
+beet	B IY1 T
+lad	L AE1 D
+date	D EY1 T
+but	B AH0 T
+but	B AH1 T
+but	B Y UW1 T
+hoot	HH UW1 T
+cat	K AE0 T
+cat	K AE1 T
+cat	K AE2 T
+cat	K AH0 T
+nut	N AH1 T
+should	SH UH1 D
+were	W ER0
+were	W ER1
+laid	L EY1 D
+could	K UH1 D
+bout	B AW1 T
+bout	B AW2 T
+dug	D AH1 G
+sad	S AA1 D
+sad	S AE1 D
+sad	S AH0 D
+sit	S IH0 T
+sit	S IH1 T
+bit	B IH0 T
+bit	B IH1 T
+seed	S IY1 D
+seed	S IY2 D
+moat	M OW1 T
+laid	L EY1 D
+tight	T AY1 T
+bead	B IY1 D
+booed	B UW1 D
+spur	S P ER0
+spur	S P ER1
+spur	S P ER2
+bite	B AY1 T
+bite	B AY2 T
+deed	D IY1 D
+caught	K AA1 T
+caught	K AO1 T
+guy	G AY1
+guy	G AY2
+book	B UH1 K
+book	B UH2 K
+met	M AH0 T
+met	M EH1 T
+sip	S IH1 P
+could	K UH1 D
+mode	M OW0 D
+mode	M OW1 D
+kite	K AY1 T
+bat	B AE0 T
+bat	B AE1 T
+bat	B AH0 T
+soup	S UW1 P
+fur	F ER0
+fur	F ER1
+fur	F UH0 R
+fur	F Y UH1 R
+loot	L UW1 T
+pot	P AA1 T
+pot	P AA2 T
+pot	P AH0 T
+peck	P EH1 K
+peck	P IH0 K
+buy	B AY1
+buy	B AY2
+paid	P EY1 D
+guy	G AY1
+guy	G AY2
+spur	S P ER0
+spur	S P ER1
+spur	S P ER2
+met	M AH0 T
+met	M EH1 T
+nut	N AH1 T
+shout	SH AW1 T
+sigh	S AY1
+cow	K AW1
+bid	B IH1 D
+die	D AY1
+die	D IY0
+die	D IY1
+sir	S IH0 R
+sir	S IH1 R
+took	T UH1 K
+but	B AH0 T
+but	B AH1 T
+but	B Y UW1 T
+paid	P EY1 D
+cook	K UH1 K
+pout	P AW1 T
+pawn	P AO1 N
+beet	B IY1 T
+ought	AO1 T
+tate	T EY1 T
+bought	B AO1 T
+shout	SH AW1 T
+mad	M AA0 D
+mad	M AE1 D
+mad	M AE2 D
+mad	M AH0 D
+cook	K UH1 K
+bet	B EH1 T
+bet	B IH0 T
+dug	D AH1 G
+pug	P AH1 G
+fight	F AY1 T
+fight	F AY2 T
+soak	S OW1 K
+date	D EY1 T
+deed	D IY1 D
+bit	B IH0 T
+bit	B IH1 T
+caught	K AA1 T
+caught	K AO1 T
+sip	S IH1 P
+bat	B AE0 T
+bat	B AE1 T
+bat	B AH0 T
+pouch	P AW1 CH
+boot	B UW1 T
+cat	K AE0 T
+cat	K AE1 T
+cat	K AE2 T
+cat	K AH0 T
+sit	S IH0 T
+sit	S IH1 T
+were	W ER0
+were	W ER1
+peck	P EH1 K
+peck	P IH0 K
+bead	B IY1 D
+kid	K IH1 D
+lie	L AY1
+lie	L IY0
+lie	L IY1
+pouch	P AW1 CH
+book	B UH1 K
+book	B UH2 K
+her	HH ER0
+might	M AY1 T
+set	S EH0 T
+set	S EH1 T
+set	S EH2 T
+pout	P AW1 T
+seed	S IY1 D
+seed	S IY2 D
+her	HH ER0
+took	T UH1 K
+bait	B EY1 T
+mad	M AA0 D
+mad	M AE1 D
+mad	M AE2 D
+mad	M AH0 D
+seat	S IY1 T
+suck	S AH1 K
+hoot	HH UW1 T
+boat	B OW1 T
+cod	K AA1 D
+boat	B OW1 T
+cow	K AW1
+bought	B AO1 T
+boot	B UW1 T
+sir	S IH0 R
+sir	S IH1 R
+sad	S AA1 D
+sad	S AE1 D
+sad	S AH0 D
+bait	B EY1 T
+pawn	P AO1 N
+code	K OW1 D
+sigh	S AY1
+mode	M OW0 D
+mode	M OW1 D
+got	G AA1 T
+got	G AH0 T
+bet	B EH1 T
+bet	B IH0 T
