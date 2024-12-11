@@ -102,6 +102,15 @@ class Corpus:
 
         self.entries: list[Entry] = self.load()
 
+    def __iter__(self):
+        return iter(self.entries)
+
+    def __len__(self):
+        return len(self.entries)
+
+    def __getitem__(self, idx):
+        return self.entries[idx]
+
     def __str__(self):
         size = f"Size: {len(self.entries)}"
         unique_words = f"Unique words: {len(set([word.word for entry in self.entries for word in entry.words]))}"
