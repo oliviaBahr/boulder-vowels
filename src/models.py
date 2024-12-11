@@ -15,9 +15,9 @@ class Word:
     phone: str
     start: float
     end: float
-    f1: list
-    f2: list
-    f3: list
+    f1: np.ndarray
+    f2: np.ndarray
+    f3: np.ndarray
 
 
 class Entry:
@@ -83,7 +83,7 @@ class Entry:
                 f1.append(self.formants.get_value_at_time(1, time))
                 f2.append(self.formants.get_value_at_time(2, time))
                 f3.append(self.formants.get_value_at_time(3, time))
-            results.append(Word(word.text, phone.text, phone.start_time, phone.end_time, f1, f2, f3))
+            results.append(Word(word.text, phone.text, phone.start_time, phone.end_time, np.array(f1), np.array(f2), np.array(f3)))
 
         return results
 
@@ -115,7 +115,8 @@ class Corpus:
         size = f"Size: {len(self.entries)}"
         unique_words = f"Unique words: {len(set([word.word for entry in self.entries for word in entry.words]))}"
         word_type = f"Word type: {type(self.entries[0].words[0])}"
-        return "\n".join([size, unique_words, word_type])
+        formant_type = f"Formant type: {type(self.entries[0].words[0].f1)}"
+        return "\n".join([size, unique_words, word_type, formant_type])
 
     def write(self) -> None:
         print("writing corpus")
