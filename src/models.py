@@ -9,6 +9,7 @@ import numpy as np
 from numpy import ndarray
 from p_tqdm import p_umap
 from parselmouth import Formant, PraatError, Sound, Spectrogram, read
+from parselmouth.praat import TextGrid
 
 np.seterr(all="raise")
 
@@ -101,6 +102,7 @@ class Entry:
     def __init__(self, id: str, words: list[Word] | None = None):
         self.id = id
         self.words: list[Word] = self.construct_words() if words is None else words
+        self.textgrid: TextGrid
         self.sound: Sound
         self.spectrogram: Spectrogram
         self.formants: Formant
