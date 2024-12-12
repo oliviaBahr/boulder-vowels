@@ -3,7 +3,7 @@ from ast import literal_eval
 from dataclasses import dataclass, field
 from os import listdir
 from os.path import splitext
-from typing import Literal
+from typing import Callable, Literal
 
 import numpy as np
 from numpy import ndarray
@@ -19,8 +19,12 @@ class Utils:
         return len(phone_str) == 3 and phone_str[0] in ["A", "E", "I", "O", "U"]
 
     @staticmethod
+    def is_rhotic(phone_str: str) -> bool:
+        return phone_str[:2] in ["ER", "AX"]
+
+    @staticmethod
     def is_diphthong(phone_str: str) -> bool:
-        return len(phone_str) == 3 and phone_str[:2] in ["AW", "AY", "EY", "OW", "OY"]
+        return phone_str[:2] in ["AW", "AY", "EY", "OW", "OY"]
 
 
 @dataclass
@@ -137,6 +141,10 @@ class Entry:
         self.id = state["id"]
         self.words = state["words"]
 
+    def filter(self, func: Callable[[Word], bool]) -> "Entry":
+        words = list(filter(func, self.words))
+        return Entry(self.id, words)
+
     def construct_words(self) -> list[Word]:
         self.init_parselmouth()
 
@@ -165,19 +173,20 @@ class Entry:
 
 
 class Corpus:
-    def __init__(self, normalize: Literal["lobanov", "labov_ANAE", "none"] = "none", reload: bool = False, num_to_load: int = -1):
+    def __init__(self, entries: list[Entry] | None = None, normalize: Literal["lobanov", "labov_ANAE", "none"] = "none", reload: bool = False, num_to_load: int = -1):
         """
         normalize: if True, normalize the corpus
         reload: if True, build the corpus from wav files
         num_to_load: -1 for all, n for n
         """
         self.ids = [name for name, ext in map(splitext, listdir("./corpus/unaligned")) if ext == ".wav"]
+        if not entries:
+            if reload:
+                entries = self.build_corpus(num_to_load)
+            else:
+                entries = self.load()
 
-        if reload:
-            self.entries: list[Entry] = self.build_corpus(num_to_load)
-            self.write()
-
-        self.entries: list[Entry] = self.load()
+        self.entries = entries
 
         match normalize:
             case "lobanov":
@@ -202,6 +211,10 @@ class Corpus:
         word_type = f"Word type: {type(self.entries[0].words[0])}"
         formant_type = f"Formant type: {type(self.entries[0].words[0].f1)}"
         return "\n".join([size, unique_words, word_type, formant_type])
+
+    def filter(self, func: Callable[[Entry], bool]) -> "Corpus":
+        entries = list(filter(func, self.entries))
+        return Corpus(entries=entries)
 
     def write(self) -> None:
         print("writing corpus")
