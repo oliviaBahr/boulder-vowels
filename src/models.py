@@ -162,12 +162,12 @@ class Entry:
                 f2.append(self.formants.get_value_at_time(2, time))
                 f3.append(self.formants.get_value_at_time(3, time))
 
-            assert len(f1) > 0 and len(f2) > 0 and len(f3) > 0, f"invalid formant data for {phone.text}. {len(f1) = }, {len(f2) = }, {len(f3) = }"
+            if len(f1) == 0 or len(f2) == 0 or len(f3) == 0:
+                print(f"Skipping word '{word.text}' due to invalid formant data: {len(f1) = }, {len(f2) = }, {len(f3) = }")
+                continue
+
             word_class = Diphthong if Utils.is_diphthong(phone.text) else Monophthong
-            try:
-                results.append(word_class(word.text, phone.text, phone.start_time, phone.end_time, np.array(f1), np.array(f2), np.array(f3)))
-            except AssertionError as e:
-                print(f"Skipping word '{word.text}' due to assertion error: {str(e)}")
+            results.append(word_class(word.text, phone.text, phone.start_time, phone.end_time, np.array(f1), np.array(f2), np.array(f3)))
 
         return results
 
