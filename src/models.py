@@ -163,17 +163,27 @@ class Entry:
                 f3.append(self.formants.get_value_at_time(3, time))
 
             if len(f1) == 0 or len(f2) == 0 or len(f3) == 0:
-                print(f"Skipping word '{word.text}' due to invalid formant data: {len(f1) = }, {len(f2) = }, {len(f3) = }")
+                print(f"Skipping word '{word.text}': invalid formant data: {len(f1) = }, {len(f2) = }, {len(f3) = }")
                 continue
 
             word_class = Diphthong if Utils.is_diphthong(phone.text) else Monophthong
-            results.append(word_class(word.text, phone.text, phone.start_time, phone.end_time, np.array(f1), np.array(f2), np.array(f3)))
+            results.append(
+                word_class(
+                    word.text, phone.text, phone.start_time, phone.end_time, np.array(f1), np.array(f2), np.array(f3)
+                )
+            )
 
         return results
 
 
 class Corpus:
-    def __init__(self, entries: list[Entry] | None = None, normalize: Literal["lobanov", "labov_ANAE", "none"] = "none", reload: bool = False, num_to_load: int = -1):
+    def __init__(
+        self,
+        entries: list[Entry] | None = None,
+        normalize: Literal["lobanov", "labov_ANAE", "none"] = "none",
+        reload: bool = False,
+        num_to_load: int = -1,
+    ):
         """
         normalize: if True, normalize the corpus
         reload: if True, build the corpus from wav files
@@ -292,7 +302,17 @@ class Corpus:
                 f3_norm = (word.f3 - f3_mean) / f3_std
 
                 word_class = Diphthong if Utils.is_diphthong(word.phone) else Monophthong
-                normalized_words.append(word_class(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=f1_norm, f2=f2_norm, f3=f3_norm))
+                normalized_words.append(
+                    word_class(
+                        word=word.word,
+                        phone=word.phone,
+                        start=word.start,
+                        end=word.end,
+                        f1=f1_norm,
+                        f2=f2_norm,
+                        f3=f3_norm,
+                    )
+                )
             entry.words = normalized_words
 
     def normalize_labov_ANAE(self) -> None:
@@ -323,5 +343,15 @@ class Corpus:
             normalized_words = []
             for word in entry.words:
                 word_class = Diphthong if Utils.is_diphthong(word.phone) else Monophthong
-                normalized_words.append(word_class(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=word.f1 * F, f2=word.f2 * F, f3=word.f3 * F))
+                normalized_words.append(
+                    word_class(
+                        word=word.word,
+                        phone=word.phone,
+                        start=word.start,
+                        end=word.end,
+                        f1=word.f1 * F,
+                        f2=word.f2 * F,
+                        f3=word.f3 * F,
+                    )
+                )
             entry.words = normalized_words
