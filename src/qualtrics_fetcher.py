@@ -19,14 +19,12 @@ MAX_CONCURRENT = 3  # maximum concurrent requests
 
 
 def concat_wavs(wav_contents: List[bytes], outfile: str):
-    with wave.open(io.BytesIO(wav_contents[0]), "rb") as w:
-        params = w.getparams()
-
     with wave.open(outfile, "wb") as outwave:
-        outwave.setparams(params)
         for wav in wav_contents:
-            with wave.open(io.BytesIO(wav), "rb") as w:
-                outwave.writeframes(w.readframes(w.getnframes()))
+            with wave.open(io.BytesIO(wav), "rb") as inwave:
+                if outwave.getnframes() == 0:
+                    outwave.setparams(inwave.getparams())
+                outwave.writeframes(inwave.readframes(inwave.getnframes()))
 
 
 async def fetch_wav_async(session: aiohttp.ClientSession, url: str, semaphore: Semaphore) -> Optional[bytes]:
