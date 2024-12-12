@@ -321,11 +321,10 @@ class Corpus:
         """
         Implements Labov's ANAE normalization method using the Telsur G value.
 
-        This method:
-        1. Uses G = 6.896874 (Telsur grand mean from ANAE)
-        2. Calculates speaker means (S) from log of F1 and F2
-        3. Computes scaling factor F = exp(G - S)
-        4. Multiplies original formant values by F
+        1. Use G = 6.896874 (Telsur grand mean from ANAE)
+        2. Calculate speaker means (S) from log of F1 and F2
+        3. Compute scaling factor F = exp(G - S)
+        4. Multiply original formant values by F
         """
         # Telsur grand mean (G) from ANAE
         G = 6.896874
