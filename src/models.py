@@ -8,8 +8,7 @@ from typing import Callable, Literal
 import numpy as np
 from numpy import ndarray
 from p_tqdm import p_umap
-from parselmouth import Formant, PraatError, Sound, Spectrogram, read
-from parselmouth.praat import TextGrid
+from parselmouth import Formant, PraatError, Sound, Spectrogram, TextGrid, read
 
 np.seterr(all="raise")
 
