@@ -1,13 +1,33 @@
 import pickle
 from ast import literal_eval
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from os import listdir
 from os.path import splitext
 from typing import Literal
 
 import numpy as np
+from numpy import ndarray
 from p_tqdm import p_umap
-from parselmouth import Formant, Sound, Spectrogram, read
+from parselmouth import Formant, PraatError, Sound, Spectrogram, read
+
+np.seterr(all="raise")
+
+
+class Utils:
+    @staticmethod
+    def is_vowel(phone_str: str) -> bool:
+        return len(phone_str) == 3 and phone_str[0] in ["A", "E", "I", "O", "U"]
+
+    @staticmethod
+    def is_diphthong(phone_str: str) -> bool:
+        return len(phone_str) == 3 and phone_str[:2] in ["AW", "AY", "EY", "OW", "OY"]
+
+
+@dataclass
+class Means:
+    f1: float = 0.0
+    f2: float = 0.0
+    f3: float = 0.0
 
 
 @dataclass
@@ -19,12 +39,62 @@ class Word:
     f1: np.ndarray
     f2: np.ndarray
     f3: np.ndarray
+    means1: Means = field(default_factory=Means)
+    means2: Means = field(default_factory=Means)
+
+    def __post_init__(self):
+        length = min(len(self.f1), len(self.f2), len(self.f3))
+        assert length > 1, f"Empty slice for f1: {len(self.f1)}, f2: {len(self.f2)}, f3: {len(self.f3)}"
+        self.f1 = self.f1[:length]
+        self.f2 = self.f2[:length]
+        self.f3 = self.f3[:length]
+
+
+@dataclass
+class Monophthong(Word):
+    def __post_init__(self):
+        super().__post_init__()
+        self.means1 = Means(float(np.mean(self.f1)), float(np.mean(self.f2)), float(np.mean(self.f3)))
+
+
+@dataclass
+class Diphthong(Word):
+    def __post_init__(self):
+        super().__post_init__()
+
+        # remove the first and last 10% of the array
+        def split(arr: ndarray) -> tuple[ndarray, ndarray]:
+            halfway = len(arr) // 2
+            part1 = arr[:halfway]
+            part2 = arr[halfway:]
+
+            # try to remove the first and last 10% of the array on both parts
+            trimmed1 = part1[int(len(part1) * 0.1) : int(len(part1) * 0.9)]
+            trimmed2 = part2[int(len(part2) * 0.1) : int(len(part2) * 0.9)]
+
+            # if the array is still empty, remove the first or last 10% of the array
+            if len(trimmed1) < 1:
+                trimmed1 = part1[: int(len(part1) * 0.9)]
+                if len(trimmed1) < 1:
+                    trimmed1 = part1
+            if len(trimmed2) < 1:
+                trimmed2 = part2[int(len(part2) * 0.1) :]
+                if len(trimmed2) < 1:
+                    trimmed2 = part2
+
+            return trimmed1, trimmed2
+
+        f1_1, f1_2 = split(self.f1)
+        f2_1, f2_2 = split(self.f2)
+        f3_1, f3_2 = split(self.f3)
+
+        self.means1 = Means(float(np.mean(f1_1)), float(np.mean(f2_1)), float(np.mean(f3_1)))
+        self.means2 = Means(float(np.mean(f1_2)), float(np.mean(f2_2)), float(np.mean(f3_2)))
 
 
 class Entry:
     # can error
     def __init__(self, id: str, words: list[Word] | None = None):
-        # print("Initializing", id)
         self.id = id
         self.words: list[Word] = self.construct_words() if words is None else words
         self.sound: Sound
@@ -69,11 +139,10 @@ class Entry:
 
     def construct_words(self) -> list[Word]:
         self.init_parselmouth()
-        is_vowel = lambda x: len(x.text) == 3
 
         words = list(self.textgrid.tiers[0])
-        vowels = list(filter(is_vowel, self.textgrid.tiers[1]))
-        assert len(vowels) == len(words), f"len(vowels) != len(words): {len(vowels) = }, {len(words) = }"
+        vowels = list(filter(lambda intr: Utils.is_vowel(intr.text), self.textgrid.tiers[1]))
+        assert len(vowels) == len(words), f"len(vowels) != len(words): {len(vowels)} != {len(words)}"
 
         # get the formants
         results = []
@@ -84,7 +153,13 @@ class Entry:
                 f1.append(self.formants.get_value_at_time(1, time))
                 f2.append(self.formants.get_value_at_time(2, time))
                 f3.append(self.formants.get_value_at_time(3, time))
-            results.append(Word(word.text, phone.text, phone.start_time, phone.end_time, np.array(f1), np.array(f2), np.array(f3)))
+
+            assert len(f1) > 0 and len(f2) > 0 and len(f3) > 0, f"invalid formant data for {phone.text}. {len(f1) = }, {len(f2) = }, {len(f3) = }"
+            word_class = Diphthong if Utils.is_diphthong(phone.text) else Monophthong
+            try:
+                results.append(word_class(word.text, phone.text, phone.start_time, phone.end_time, np.array(f1), np.array(f2), np.array(f3)))
+            except AssertionError as e:
+                print(f"Skipping word '{word.text}' due to assertion error: {str(e)}")
 
         return results
 
@@ -142,31 +217,40 @@ class Corpus:
             assert isinstance(entries[0].words[0], Word)
             return entries
 
-    def build_entry(self, id: str) -> Entry | Exception:
-        try:
-            return Entry(id)
-        except FileNotFoundError as e:
-            return Exception(f"File not found for {id}. Something went wrong with alignment. Skipping...", e)
-        except Exception as e:
-            return Exception(f"Something went wrong with {id}. Skipping...", e)
-
     def build_corpus(self, num_to_load: int) -> list[Entry]:
+        def build_entry(id: str) -> tuple[str, Entry | Exception]:
+            try:
+                return id, Entry(id)
+            except FileNotFoundError as e:
+                return id, e
+            except PraatError as e:
+                return id, e
+            except AssertionError as e:
+                return id, e
+            except Exception as e:
+                print(f"Something went wrong with... Raising error...")
+                raise e
+
         print("loading corpus from raw files")
         num_to_load = num_to_load if num_to_load > 0 else len(self.ids)
-        entries = []
-        errors = []
+        entries: list[Entry] = []
+        errors: list[tuple[str, Exception]] = []
 
         # parallel unordered map that prints progress
-        res = p_umap(self.build_entry, self.ids[:num_to_load], desc="Building corpus")
+        results = p_umap(build_entry, self.ids[:num_to_load], desc="Building corpus")
 
-        for entry in res:
-            if isinstance(entry, Exception):
-                errors.append(entry)
+        for id, res in results:
+            if isinstance(res, Exception):
+                errors.append((id, res))
             else:
-                entries.append(entry)
+                entries.append(res)
 
-        [print("error = ", e) for e in errors]
+        print(("=" * 10) + "error summary" + ("=" * 10))
+        for id, e in errors:
+            print(f"{id}: {type(e).__name__}: {e}")
+        print("=" * 60)
         print(f"Loaded {len(entries)} entries with {len(errors)} errors")
+        print("=" * 60)
         return entries
 
     def normalize_lobanov(self) -> None:
@@ -194,7 +278,8 @@ class Corpus:
                 f2_norm = (word.f2 - f2_mean) / f2_std
                 f3_norm = (word.f3 - f3_mean) / f3_std
 
-                normalized_words.append(Word(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=f1_norm, f2=f2_norm, f3=f3_norm))
+                word_class = Diphthong if Utils.is_diphthong(word.phone) else Monophthong
+                normalized_words.append(word_class(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=f1_norm, f2=f2_norm, f3=f3_norm))
             entry.words = normalized_words
 
     def normalize_labov_ANAE(self) -> None:
@@ -224,7 +309,6 @@ class Corpus:
             # Apply scaling to all formants
             normalized_words = []
             for word in entry.words:
-                normalized_words.append(
-                    Word(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=word.f1 * F, f2=word.f2 * F, f3=word.f3 * F)  # F3 is scaled by the same factor
-                )
+                word_class = Diphthong if Utils.is_diphthong(word.phone) else Monophthong
+                normalized_words.append(word_class(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=word.f1 * F, f2=word.f2 * F, f3=word.f3 * F))
             entry.words = normalized_words
