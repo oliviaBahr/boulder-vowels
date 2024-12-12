@@ -3,6 +3,7 @@ from ast import literal_eval
 from dataclasses import dataclass
 from os import listdir
 from os.path import splitext
+from typing import Literal
 
 import numpy as np
 from p_tqdm import p_umap
@@ -22,10 +23,10 @@ class Word:
 
 class Entry:
     # can error
-    def __init__(self, id: str):
+    def __init__(self, id: str, words: list[Word] | None = None):
         # print("Initializing", id)
         self.id = id
-        self.words: list[Word] = self.construct_words()
+        self.words: list[Word] = self.construct_words() if words is None else words
         self.sound: Sound
         self.spectrogram: Spectrogram
         self.formants: Formant
@@ -89,8 +90,9 @@ class Entry:
 
 
 class Corpus:
-    def __init__(self, reload: bool = False, num_to_load: int = -1):
+    def __init__(self, normalize: Literal["lobanov", "labov_ANAE", "none"] = "none", reload: bool = False, num_to_load: int = -1):
         """
+        normalize: if True, normalize the corpus
         reload: if True, build the corpus from wav files
         num_to_load: -1 for all, n for n
         """
@@ -101,6 +103,14 @@ class Corpus:
             self.write()
 
         self.entries: list[Entry] = self.load()
+
+        match normalize:
+            case "lobanov":
+                self.normalize_lobanov()
+            case "labov_ANAE":
+                self.normalize_labov_ANAE()
+            case _:
+                pass
 
     def __iter__(self):
         return iter(self.entries)
@@ -158,3 +168,63 @@ class Corpus:
         [print("error = ", e) for e in errors]
         print(f"Loaded {len(entries)} entries with {len(errors)} errors")
         return entries
+
+    def normalize_lobanov(self) -> None:
+        """
+        Lobanov normalization across all speakers:
+        For each formant (F1, F2, F3):
+        1. Collect all measurements across all words
+        2. Calculate mean and standard deviation
+        3. Apply z-score transformation to each measurement
+        """
+        # Collect all formant values across the corpus
+        all_f1 = np.concatenate([word.f1 for entry in self for word in entry.words])
+        all_f2 = np.concatenate([word.f2 for entry in self for word in entry.words])
+        all_f3 = np.concatenate([word.f3 for entry in self for word in entry.words])
+
+        # Calculate means and standard deviations
+        f1_mean, f1_std = np.mean(all_f1), np.std(all_f1)
+        f2_mean, f2_std = np.mean(all_f2), np.std(all_f2)
+        f3_mean, f3_std = np.mean(all_f3), np.std(all_f3)
+
+        for entry in self:
+            normalized_words = []
+            for word in entry.words:
+                f1_norm = (word.f1 - f1_mean) / f1_std
+                f2_norm = (word.f2 - f2_mean) / f2_std
+                f3_norm = (word.f3 - f3_mean) / f3_std
+
+                normalized_words.append(Word(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=f1_norm, f2=f2_norm, f3=f3_norm))
+            entry.words = normalized_words
+
+    def normalize_labov_ANAE(self) -> None:
+        """
+        Implements Labov's ANAE normalization method using the Telsur G value.
+
+        This method:
+        1. Uses G = 6.896874 (Telsur grand mean from ANAE)
+        2. Calculates speaker means (S) from log of F1 and F2
+        3. Computes scaling factor F = exp(G - S)
+        4. Multiplies original formant values by F
+        """
+        # Telsur grand mean (G) from ANAE
+        G = 6.896874
+
+        for entry in self:
+            # Get all F1 and F2 values for this speaker
+            all_f1 = np.concatenate([word.f1 for word in entry.words])
+            all_f2 = np.concatenate([word.f2 for word in entry.words])
+
+            # Calculate speaker's mean (S) using log of F1 and F2
+            S = np.mean(np.log(np.concatenate([all_f1, all_f2])))
+
+            # Calculate scaling factor F
+            F = np.exp(G - S)
+
+            # Apply scaling to all formants
+            normalized_words = []
+            for word in entry.words:
+                normalized_words.append(
+                    Word(word=word.word, phone=word.phone, start=word.start, end=word.end, f1=word.f1 * F, f2=word.f2 * F, f3=word.f3 * F)  # F3 is scaled by the same factor
+                )
+            entry.words = normalized_words
